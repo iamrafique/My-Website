@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vocab Master - Semantic Edition</title>
+    <title>Vocab Master - Final</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
@@ -181,8 +181,13 @@
         .lb-rank { font-weight: 800; font-size: 1.2rem; width: 30px; }
         .lb-name { flex-grow: 1; text-align: left; font-weight: 600; padding-left: 10px; }
         .lb-score { font-weight: 700; color: var(--warning); }
-        .refresh-btn { background: var(--bg-element); border: none; color: var(--text-main); border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
-        .refresh-btn:active { transform: rotate(180deg); }
+        
+        .refresh-btn { 
+            background: var(--primary); border: none; color: white; border-radius: 50%; width: 36px; height: 36px; 
+            cursor: pointer; display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); transition: transform 0.2s; 
+        }
+        .refresh-btn:active { transform: rotate(180deg) scale(0.95); }
 
         @media (max-width: 600px) {
             .options-grid { grid-template-columns: 1fr; }
@@ -246,7 +251,7 @@
             <button class="ctrl-btn btn-multi" style="width:100%" onclick="window.app.startOnlineRound()">START GAME</button>
         </div>
         <div id="client-wait" style="display:none; color:#f59e0b; margin-top:20px;">Waiting for host...</div>
-        <button onclick="location.reload()" style="margin-top:20px; background:none; border:none; color:#94a3b8;">Back</button>
+        <button onclick="window.app.quitToMenu()" style="margin-top:20px; background:none; border:none; color:#94a3b8;">Back</button>
     </div>
 
     <div id="feed-container" style="display:none;">
@@ -296,7 +301,7 @@
 
         <div id="review-container" style="margin-top:15px; text-align:left; max-height:400px; overflow-y:auto; padding-right:5px;"></div>
         
-        <button class="ctrl-btn btn-solo" style="width:100%; margin-top:20px;" onclick="location.reload()">Back to Menu</button>
+        <button class="ctrl-btn btn-solo" style="width:100%; margin-top:20px;" onclick="window.app.quitToMenu()">Quit to Menu</button>
     </div>
 </div>
 
@@ -888,6 +893,11 @@
             else document.body.classList.remove('light-theme');
         },
 
+        quitToMenu() {
+            // Forces clean reload without query params (quits session)
+            window.location.href = window.location.pathname;
+        },
+
         checkNameAndJoin() {
             if (this.data.name === "Guest") document.getElementById('name-modal').classList.add('active');
             else if (this.gameId) this.joinGameLobby();
@@ -970,9 +980,12 @@
 
         async startOnlineRound() { if(db) await db.collection('vocab_games').doc(this.gameId.toString()).update({ status: 'started' }); },
 
-        // --- NEW SEMANTIC OPTION LOGIC ---
-        detectCategory(meaning) {
+        // --- NEW SEMANTIC OPTION LOGIC (MULTI & SOLO) ---
+        detectCategory(word, meaning) {
             const m = meaning.toLowerCase();
+            const w = word.toLowerCase();
+            
+            // 1. Check Keywords in Meaning
             if (m.includes('killing') || m.includes('murder') || m.includes('slaughter')) return 'killing';
             if (m.includes('fear') || m.includes('phobia')) return 'phobia';
             if (m.includes('government') || m.includes('rule') || m.includes('political')) return 'gov';
@@ -981,6 +994,17 @@
             if (m.includes('place') || m.includes('where') || m.includes('building')) return 'place';
             if (m.includes('group') || m.includes('collection')) return 'group';
             if (m.includes('mania') || m.includes('desire') || m.includes('craving')) return 'mania';
+
+            // 2. Check Suffixes (Hardcore Mode)
+            if (w.endsWith('cide')) return 'killing';
+            if (w.endsWith('phobia')) return 'phobia';
+            if (w.endsWith('logy') || w.endsWith('ics')) return 'study';
+            if (w.endsWith('cracy') || w.endsWith('archy')) return 'gov';
+            if (w.endsWith('ist') || w.endsWith('or') || w.endsWith('er') || w.endsWith('ian')) return 'person';
+            if (w.endsWith('arium') || w.endsWith('ary')) return 'place';
+            if (w.endsWith('tion') || w.endsWith('sion')) return 'noun_action';
+            if (w.endsWith('ous') || w.endsWith('al') || w.endsWith('ic')) return 'adj';
+
             return null;
         },
 
@@ -1021,17 +1045,17 @@
 
             this.currentBatch = pool.map((t, i) => {
                 const correctWord = t.word;
-                const cat = this.detectCategory(t.meaning);
+                const cat = this.detectCategory(t.word, t.meaning);
                 let distractors = [];
 
                 // 1. Try Category Match (Smartest)
                 if (cat) {
-                    let candidates = this.words.filter(w => w.word !== correctWord && this.detectCategory(w.meaning) === cat);
+                    let candidates = this.words.filter(w => w.word !== correctWord && this.detectCategory(w.word, w.meaning) === cat);
                     candidates = candidates.map(w => ({w, s:rng()})).sort((a,b)=>a.s-b.s).map(x=>x.w);
                     distractors = candidates.slice(0, 3);
                 }
 
-                // 2. Fallback: First Letter Match (If category failed or not enough options)
+                // 2. Fallback: First Letter Match
                 if (distractors.length < 3) {
                     const firstChar = correctWord.charAt(0);
                     let letterCandidates = this.words.filter(w => w.word !== correctWord && w.word.charAt(0) === firstChar && !distractors.includes(w));
@@ -1039,7 +1063,7 @@
                     distractors = [...distractors, ...letterCandidates].slice(0, 3);
                 }
 
-                // 3. Fallback: Random (Last Resort)
+                // 3. Fallback: Random
                 if (distractors.length < 3) {
                     const needed = 3 - distractors.length;
                     const others = this.words.filter(w => w.word !== correctWord && !distractors.includes(w));
@@ -1215,11 +1239,7 @@
             let currentRank = 1;
             
             document.getElementById('final-lb-list').innerHTML = players.map((p, i) => {
-                // If not first player, and score is different from previous, increment rank
-                if (i > 0 && p.score < players[i-1].score) {
-                    currentRank++;
-                }
-                // If score is same as previous, currentRank stays same (Tie)
+                if (i > 0 && p.score < players[i-1].score) currentRank++;
 
                 let badge = '🎗️';
                 if(currentRank === 1) badge = '🥇';
