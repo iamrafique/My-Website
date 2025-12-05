@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vocab Master - Final Stable</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #6366f1;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --selected: #3b82f6;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            margin: 0; padding: 0;
+            display: flex; justify-content: center;
+            min-height: 100vh;
+            padding-top: 60px; 
+            padding-bottom: 140px; 
+        }
+
+        .app-container { width: 100%; max-width: 700px; padding: 20px; box-sizing: border-box; }
+
+        /* USER HEADER */
+        .user-header-bar {
+            position: fixed; top: 0; left: 0; width: 100%;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 20px; z-index: 1000;
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box;
+        }
+        .live-indicator { 
+            display: inline-block; width: 8px; height: 8px; 
+            background: var(--text-muted); border-radius: 50%; 
+            margin-right:5px;
+        }
+        .live-on { background: var(--success); box-shadow: 0 0 8px var(--success); }
+
+        /* FOOTER */
+        .developer-footer {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            color: #64748b; text-align: center;
+            padding: 12px; font-size: 0.75rem; font-weight: 600;
+            letter-spacing: 1px; text-transform: uppercase;
+            z-index: 900; backdrop-filter: blur(5px);
+        }
+
+        /* DASHBOARD */
+        .dashboard-card {
+            background: var(--card-bg); border-radius: 24px; padding: 30px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); text-align: center;
+        }
+
+        .xp-container { margin-bottom: 25px; }
+        .xp-info { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 700; color: var(--primary); }
+        .progress-track { width: 100%; height: 12px; background: #334155; border-radius: 6px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #a855f7); width: 0%; transition: width 0.5s ease; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 30px; }
+        .stat-box { background: #334155; padding: 15px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; }
+        .stat-val { font-size: 1.4rem; font-weight: 800; }
+        .stat-lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+
+        .game-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .ctrl-btn {
+            padding: 18px; border: none; border-radius: 16px; font-family: 'Poppins', sans-serif;
+            font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 1rem;
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+        }
+        .ctrl-btn:active { transform: translateY(4px); box-shadow: none; }
+        .btn-solo { background: #e0e7ff; color: #4338ca; }
+        .btn-multi { background: linear-gradient(135deg, #f59e0b, #ea580c); color: white; }
+
+        /* LOBBY & QUIZ */
+        .lobby-panel { background: var(--card-bg); border-radius: 24px; padding: 30px; text-align: center; margin-top: 20px; display: none; }
+        .lobby-code { font-size: 2.5rem; font-weight: 800; letter-spacing: 5px; color: var(--primary); margin: 20px 0; background: rgba(99, 102, 241, 0.1); padding: 15px; border-radius: 12px; cursor: pointer; font-family: monospace; }
+        .player-chip { background: #334155; padding: 10px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+
+        .session-card { background: var(--card-bg); border-radius: 20px; margin-bottom: 25px; overflow: hidden; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+        .q-header { padding: 20px; display: flex; gap: 15px; align-items: flex-start; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .q-num { background: var(--primary); color: white; padding: 5px 10px; border-radius: 8px; font-weight: 800; font-size: 0.9rem; height: fit-content; }
+        .q-text { font-size: 1.05rem; line-height: 1.5; font-weight: 500; }
+
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px; }
+        .opt-btn { background: #334155; border: 2px solid transparent; padding: 15px; border-radius: 12px; text-align: left; cursor: pointer; color: var(--text-light); font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .opt-btn.selected { background: #1e40af !important; border-color: var(--selected) !important; color: white !important; }
+        .opt-btn.correct { background: #064e3b !important; border-color: #34d399 !important; color: #d1fae5 !important; }
+        .opt-btn.wrong { background: #7f1d1d !important; border-color: #f87171 !important; color: #fee2e2 !important; }
+        .opt-btn:disabled { opacity: 0.8; pointer-events: none; }
+
+        .audio-icon-btn { background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #cbd5e1; margin-left: 10px; }
+
+        /* MODALS & REVIEW */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 2000; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex !important; }
+        .modal-card { background: var(--card-bg); width: 95%; max-width: 500px; border-radius: 24px; padding: 25px; text-align: center; color: white; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        
+        .review-item { background: #0f172a; border-radius: 12px; padding: 15px; margin-bottom: 15px; text-align: left; border: 1px solid rgba(255,255,255,0.05); }
+        .review-q { font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; color: #e2e8f0; }
+        .review-ans-row { display: flex; gap: 10px; font-size: 0.85rem; margin-bottom: 10px; flex-wrap: wrap; }
+        .ans-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+        .ans-correct { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #34d399; }
+        .ans-wrong { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #f87171; }
+        
+        .review-tools { display: flex; gap: 8px; margin-top: 8px; }
+        .tool-btn { background: #334155; border: 1px solid #475569; color: #cbd5e1; padding: 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; flex: 1; font-weight: 600; transition: 0.2s; }
+        .tool-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .ai-box-review { margin-top: 10px; background: #1e293b; padding: 10px; border-radius: 8px; font-size: 0.85rem; display: none; color: #e2e8f0; border-left: 3px solid var(--primary); text-align: left; line-height: 1.5; }
+
+        input.text-input { width: 100%; padding: 15px; border: 2px solid #475569; border-radius: 12px; font-size: 1rem; margin: 20px 0; box-sizing: border-box; text-align: center; background: #0f172a; color: white; }
+
+        .fab-finish { position: fixed; bottom: 60px; right: 30px; background: white; color: var(--bg-dark); padding: 16px 32px; border-radius: 50px; border: none; font-weight: 800; font-size: 1.1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3); cursor: pointer; z-index: 1000; display: none; }
+
+        @media (max-width: 600px) {
+            .options-grid { grid-template-columns: 1fr; }
+            .game-controls { grid-template-columns: 1fr; }
+            .fab-finish { bottom: 50px; right: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="user-header-bar">
+    <div style="font-weight:700;">👤 <span id="header-name">Guest</span></div>
+    <div style="font-size:0.8rem; display:flex; align-items:center;">
+        <span class="live-indicator" id="live-dot"></span>
+        <span id="conn-text">Connecting...</span>
+    </div>
+</div>
+
+<div class="app-container">
+
+    <div class="dashboard-card" id="dashboard">
+        <h1>VOCAB MASTER</h1>
+        
+        <div class="xp-container">
+            <div class="xp-info"><span>LVL <span id="lvl-num">1</span></span><span id="xp-text">0 / 500 XP</span></div>
+            <div class="progress-track"><div class="progress-fill" id="xp-bar"></div></div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:5px;">Seen: <span id="seen-count">0</span> / 486 Unique Words</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box"><span class="stat-val" id="stat-score">0</span><span class="stat-lbl">Points</span></div>
+            <div class="stat-box"><span class="stat-val" id="stat-acc">0%</span><span class="stat-lbl">Accuracy</span></div>
+            <div class="stat-box"><span class="stat-val" id="seen-count-box">0</span><span class="stat-lbl">Words</span></div>
+        </div>
+
+        <div class="game-controls">
+            <button class="ctrl-btn btn-solo" onclick="window.app.startSolo()">
+                <span style="font-size:1.5rem">👤</span><span>Solo Run</span>
+            </button>
+            <button class="ctrl-btn btn-multi" onclick="window.app.setupOnlineGame()">
+                <span style="font-size:1.5rem">⚔️</span><span>Multiplayer</span>
+            </button>
+        </div>
+        
+        <div style="margin-top:20px;">
+            <button onclick="window.app.resetData()" style="background:none; border:none; color:#ef4444;">Reset Data</button>
+        </div>
+    </div>
+
+    <div class="lobby-panel" id="lobby-ui">
+        <h2>GAME LOBBY</h2>
+        <div class="lobby-code" id="lobby-code-display" onclick="window.app.copyLink()">----</div>
+        <div class="player-list" id="lobby-players"></div>
+        <div id="host-controls" style="display:none; margin-top:20px;">
+            <button class="ctrl-btn btn-multi" style="width:100%" onclick="window.app.startOnlineRound()">START GAME</button>
+        </div>
+        <div id="client-wait" style="display:none; color:#f59e0b; margin-top:20px;">Waiting for host...</div>
+        <button onclick="location.reload()" style="margin-top:20px; background:none; border:none; color:#94a3b8;">Back</button>
+    </div>
+
+    <div id="feed-container" style="display:none;">
+        <div class="score-rules">
+            <span>✅ +1.0 Correct</span>
+            <span style="color:#f87171">⛔ -0.5 Wrong</span>
+        </div>
+        <div id="quiz-feed"></div>
+    </div>
+
+</div>
+
+<button class="fab-finish" id="finish-btn" onclick="window.app.finishGame()">Done ✅</button>
+
+<div class="modal-overlay" id="name-modal">
+    <div class="modal-card">
+        <h2>Enter Name</h2>
+        <input type="text" id="player-name-input" class="text-input" placeholder="Your Name">
+        <button class="ctrl-btn btn-multi" style="width:100%" onclick="window.app.saveName()">Start</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="score-modal">
+    <div class="modal-card">
+        <h2 style="margin-top:0;">Session Report</h2>
+        
+        <div class="score-circle" id="final-circle" style="margin:10px auto; width:80px; height:80px; border-radius:50%; border:4px solid var(--primary); display:flex; align-items:center; justify-content:center; font-size:1.2rem; font-weight:bold; color:var(--primary);">
+            <span id="final-pct">0%</span>
+        </div>
+
+        <div style="display:flex; justify-content:center; gap:20px; margin-bottom:15px;">
+            <div style="color:var(--success); font-weight:bold;">✅ <span id="report-correct">0</span></div>
+            <div style="color:var(--danger); font-weight:bold;">❌ <span id="report-wrong">0</span></div>
+        </div>
+        
+        <h3 id="final-score-txt" style="margin:5px 0;">Score: 0</h3>
+
+        <div id="review-container" style="margin-top:15px; text-align:left; max-height:400px; overflow-y:auto; padding-right:5px;"></div>
+
+        <div id="online-lb-container" style="display:none; margin-top:20px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
+            <h4 style="color:#f59e0b; margin-bottom:10px;">Leaderboard</h4>
+            <div id="final-lb-list" style="text-align:left;"></div>
+        </div>
+        
+        <button class="ctrl-btn btn-solo" style="width:100%; margin-top:20px;" onclick="location.reload()">Back to Menu</button>
+    </div>
+</div>
+
+<div class="developer-footer">© 2025 Developed by Rafique Ul Islam</div>
+
+<script>
+    // 2. DATA
+    const rawData = `1. An area where animals are slaughtered for the food - Abattoir
+3. Act of giving up the throne - Abdication
+* To go away suddenly and secretly - Abscond
+4. The scientific study of sound - Acoustics
+5. To decide and state officially in court that somebody is not guilty - Acquit
+6. An entertainer who performs difficult physical feats - Acrobat
+7. Fear of great heights - Acrophobia
+8. Sharpness and accuracy of judgment - Acumen
+9. Living in air/existing above the ground - Aerial
+10. Concerned with beauty or the appreciation of beauty - Aesthetic
+11. A list of items to be discussed at a formal meeting - Agenda
+12. Extreme physical or mental sufferings - Agony
+13. A person who is unsure about God's existence - Agnostic
+14. The medieval forerunner of chemistry - Alchemy
+15. The money paid to former wife, husband or partner when the marriage is ended - Alimony
+16. Annual calendar that contains important dates - Almanac
+17. The school, college or university that somebody has graduated from - Alma mater
+18. A table of flat surface where offerings are made - Altar
+19. The height above sea level - Altitude
+20. One who plays for pleasure rather than as a profession - Amateur
+21. Able to use the left hand and right hand equally well - Ambidextrous
+22. A statement open to more than one interpretation - Ambiguous
+23. One who has the qualities like shyness and openness at the same time - Ambivert
+24. Someone who makes charitable donations intended to the welfare of other person - Altruist
+25. A partial or a total loss of memory - Amnesia
+26. Animal that can live both on land and in water - Amphibians
+27. A person who has had one or more limbs removed - Amputee
+28. A person who believes in or tries to bring about anarchy - Anarchist
+29. A letter, poem etc. whose author is unknown - Anonymous
+30. A remedy to counteract the effects of poison - Antidote
+31. An abbreviation formed from the initial letters of other words and pronounced as a word - Acronym
+32. A person who presents a radio/television programmer - Anchor
+33. The date on which an event happened in previous year - Anniversary
+34. One who studies the evolution of mankind - Anthropologist
+35. A place where bees are kept - Apiary
+36. An official pardon/the formal act of liberating someone - Amnesty
+37. A person who renounces a religious or political belief or principle - Apostate
+38. A glass tank where fish and water plants are kept - Aquarium
+39. Animals and plants growing or living in, or near water - Aquatic
+40. A person who is chosen to settle a disagreement/a person appointed by two parties to resolve a dispute - Arbitrator
+41. The study of human history and prehistory through the excavation of sites - Archaeology
+42. A place where government records are kept - Archives
+43. A large body of water with many islands - Archipelago
+44. The place where public, government or historical records are kept - Archive
+45. A place where fights take place - Arena
+46. A government by the nobles/government by person of highest social order - Aristocracy
+47. A military structure where arms and ammunition and other military equipment are stored - Arsenal
+48. Deliberately and maliciously set something on fire - Arson
+49. A situation in a country, an organization, etc where there is no order/control - Anarchy
+50. A criminal who illegally sets fire to property - Arsonist
+51. One who denies oneself ordinary bodily pleasures - Ascetic
+52. Good at expressing ideas, feelings clearly in words - Articulate
+53. To attribute a cause or characteristic to something - Ascribe
+54. A person engaged in or trained for spaceflight - Astronaut
+55. The scientific study of celestial bodies like sun, moon, star, planets, etc - Astronomy
+56. A hospital where people who were mentally ill could be cared for, often for a long time - Asylum
+57. One who doesn't believe in the existence of god - Atheist
+58. One who makes an official examination of accounts/financial records - Auditor
+59. A building where an audience sits - Auditorium
+60. The life history of a person written by himself - Autobiography
+61. A system of government of a country in which one person has complete power - Autocracy
+62. A self-governing country or region - Autonomy
+63. An official examination of a dead body by a doctor in order to discover the cause of death - Autopsy
+64. A place for keeping the birds in a confined space - Aviary
+65. Killing of birds - Avicide
+66. A large bundle bound for storage or transport - Bale
+67. One who is unable to pay his debts - Bankrupt
+68. Jokes and funny remarks amongst friends - Banter
+69. An instrument used for measuring atmospheric pressure - Barometer
+70. Place given to soldiers to live in - Barracks
+71. One who helps people by giving them money or other aid - Benefactor
+72. Engaged and soon to be married - Betrothed
+73. A group of girls/birds etc - Bevy
+74. A list of the books referred to in a scholarly work - Bibliography
+75. One who has narrow and prejudiced religious views - Bigot
+76. A person who loves or collects books - Bibliophile
+77. A person who can speak only two languages - Bilingual
+78. The story of a person's life written by somebody else - Biography
+79. Words uttered impiously about god/the act of speaking irreverently about sacred things - Blasphemy
+80. One who does not follow the usual rules of social life - Bohemian
+81. Huge fire for celebration - Bonfire
+82. One who is well-versed in the knowledge of plants - Botanist
+83. An arrangement flowers that is usually given as a present - Bouquet
+84. A small shop that sells fashionable clothes - Boutique
+85. Relating to cows or cattle - Bovine
+86. Hard but easily broken/liable to break easily - Brittle
+87. A family of young animals/Birds - Brood
+88. A woman with dark brown hair - Brunette
+89. A government run by officials in a state - Bureaucracy
+90. Hole excavated by an animal as dwelling - Burrow
+91. A group of things that have been hidden in some place - Cache
+92. A person who has bad handwriting or produces incorrect spelling - Cacographer
+93. Harsh or discordant sound/loud confusing disagreeable sounds - Cacophony
+94. A person who is skilled at producing beautiful handwriting - Calligrapher
+95. A person who eats human flesh - Cannibal
+96. Love for dogs - Canophilia
+97. A group of people, especially traders or pilgrims travelling together across a desert - Caravan
+98. A dead body of an animal - Carcass
+99. A doctor who specializes in the study or treatment of heart disease - Cardiologist
+100. A picture of a person or a thing drawn in such a highly exaggerated manner as to cause laughter - Caricature
+101. The war resulted in ruthless killing of many people - Carnage
+102. Those who eat meat - Carnivorous
+103. A person who draws or makes maps - Cartographer
+104. A place where gambling games are played - Casino
+105. A fall of water from a great height - Cascade
+106. A list or collection of books or informative graphics - Catalogue
+107. An event causing great and sudden damage or suffering - Catastrophe
+108. An local meeting of party members to select candidates, elect convention delegates - Caucus
+109. The state of being unmarried by choice - Celibacy
+110. Underground place for storing wine or other provisions - Cellar
+111. A large burial ground - Cemetery
+112. Something that is related to the brain or the intellect - Cerebral
+113. A person who is 100 years old or more - Centenarian
+114. A small building/room used for Christian worship in a school, prison, large private house, etc. - Chapel
+115. Exercising a compelling charm which inspires devotion in others - Charismatic
+116. A person falsely claiming to have a special knowledge or skill - Charlatan
+117. To criticize someone severely - Chastise
+118. A person employed to drive a private or hired car - Chauffeur
+119. A group of singers in a church - Choir
+120. One who plans the steps and moves in a dance - Choreographer
+121. An instrument for measuring time accurately in spite of motion or variations in temperature, humidity, and air pressure - Chronometer
+122. An arrangement of events of dates in the order of their occurrence - Chronology
+123. The use of many words where only a few are necessary - Circumlocution
+124. A fortress typically one on high ground above a city - Citadel
+125. Exclusive circle of people with a common purpose - Clique
+126. An extreme fear of being in a small confined place - Claustrophobia
+127. A room in a public building where outdoor clothes or luggage may be left - Cloakroom
+128. A small compartment in an aircraft for the pilot - Cockpit
+129. The act of compelling or forcing authority on - Coercion
+130. A secret agreement especially in order to do something dishonest or deceive people - Collusion
+131. A gigantic statue - Colossus
+132. Pertaining to an individual from birth - Congenital
+133. An assembly of worshippers/a group of people who have come together in a religious building for worship and prayer - Congregation
+134. A person who introduces the performers or contestants in a variety show - Compere
+135. A man who knows a lot about things like food, music and art - Connoisseur
+136. One who does one's work thoroughly and seriously - Conscientious
+137. Spouse of a reigning monarch - Consort
+138. A group of stars that forms a shape in the sky and has a name - Constellation
+139. Easily spread from a person to another/a disease which spreads with contact - Contagious
+140. Belonging to the same time/a person living in the same age with another - Contemporary
+141. Gradual recovery of health - Convalescence
+142. A place where nuns live and work - Convent
+143. Ceremony of crowning a king - Coronation
+144. To confirm with the help of evidence - Corroborate
+145. A funeral procession - Cortege
+146. A person who regards the whole world as his own country - Cosmopolitan
+147. That can be believed or trusted - Credible
+148. A person who readily believes others easily - Credulous
+149. A place where the last funeral rites are performed - Crematorium
+150. A keeper or custodian of a museum or other collection - Curator
+151. A religious war/A dynamic campaign for political, social or religious change - Crusade
+152. Signal under martial law for people to remain indoors - Curfew
+153. Centre of attraction - Cynosure
+154. Act of injuring another's reputation by any slanderous communication - Defamation
+155. Open refusal to obey orders - Defiance
+156. Feeling of being in a place before having already experienced the present situation - Deja-vu
+157. To give one's authority to another - Delegate
+158. A disturbed state of mind caused by an illness - Delirium
+159. A leader who sways his followers by his oratory - Demagogue
+160. A system of government in which all the people of a country can vote to elect their representatives - Democracy
+161. The study of population and its dynamics - Demography
+162. A doctor who studies and treats skin diseases - Dermatologist
+163. One who investigates and solves crimes - Detective
+164. Showing or having skill, especially with the hands - Dexterous
+165. The process of deciding the nature of a disease by examination - Diagnosis
+166. Disappointed and annoyed about something - Disgruntled
+167. To reveal a secret - Divulge
+168. The place that a person treats as his permanent home, or lives in and has a substantial connection with - Domicile
+169. A particular form of a language which is peculiar to a specific region - Dialect
+170. Government by two rulers or authorities - Diarchy
+171. A ruler with complete power over a country - Dictator
+172. A dabbler in the art and literature - Dilettante
+173. Irresistible craving for alcoholic drinks - Dipsomania
+174. A book of names and addresses - Directory
+175. A song sung in the past at a funeral or for a dead person - Dirge
+176. A large bedroom for a number of people in a school or an institution - Dormitory
+177. A game that results neither in victory nor defeat - Draw
+178. The nest of a squirrel - Drey
+179. A large number of animal often moving or doing something as a group - Drove
+180. A disorder that involve difficulty in reading, interpret words. - Dyslexia
+181. On who listens secretly to private conversation. - Eavesdropper
+182. Study of environment - Ecology
+183. A thing fit to be eaten - Edible
+184. Man behaving more like a women than as a man - Effeminate
+185. Giving off gas bubbles - Effervescent
+186. One who is preoccupied with his own interests - Egoist
+187. A person who believes in the equality of all people - Egalitarian
+188. A person who speaks always in praise of himself - Egotist
+189. A poem of lamentation on the death of someone loved and admired - Elegy
+190. The art of effective speaking/public oratory skills - Elocution
+191. An official order to stop doing business with another country - Embargo
+192. An act of misappropriation of money - Embezzlement
+193. Difficult to interpret or understand - Enigmatic
+194. A person who leaves his country to live in another - Emigrant
+195. A book or set of books giving information about all areas of knowledge - Encyclopedia
+196. The scientific study of worms and insects - Entomology
+197. The scientist who studies insects - Entomologist
+198. Lasting for a very short time - Ephemeral
+199. Widespread outbreak of a disease which affects large population at the same time - Epidemic
+200. A short speech at the end of a play - Epilogue
+201. Words written on a tombstone in the memory of the person who has died - Epitaph
+202. A state of perfect balance - Equilibrium
+203. The dates when days and rights are of equal length - Equinox
+204. Something which lasts forever - Enteral
+205. One who accompanies somebody to protect - Escort
+206. Endless period of time - Eternity
+207. The customary code of polite behaviour in society - Etiquette
+208. The study of the origin and history of words - Etymology
+209. Painless death given to patients to relieve pain - Euthanasia
+210. A journey undertaken by a group of people - Expedition
+211. A speech or a presentation made without previous preparation - Extempore
+212. Obtaining something, usually money, by using force or threat - Extortion
+213. To send back a criminal or an unwanted person to the country of his/her origin - Extradite
+214. One who frequently wastes one's money on luxurious thing - Extravagant
+215. One who is outspoken and outgoing - Extrovert
+216. A short story with a moral, usually with animals as characters - Fable
+217. An exact copy of handwriting, printing - Facsimile
+218. One who is difficult to please - Fastidious
+219. A person motivated by irrational enthusiasm - Fanatic
+220. Something which leads to death - Fatal
+221. A person who believes that all events are predetermined or subject to fate - Fatalist
+222. The animals of a particular region - Fauna
+223. A group of ships sailing together - Fleet
+224. The quality of being faithful - Fidelity
+225. The plants and vegetation of a particular region - Flora
+226. A person who sells and arranges cut flowers - Florist
+227. A person who has escaped from captivity or is in hiding - Fugitive
+228. That is possible and likely to be achieved - Feasible
+229. Constitutional right to cast vote - Franchise
+230. The murder of whole race or a group of people - Genocide
+231. The study of earth, including the origin and history of the rocks and soil of which the earth is made - Geology
+232. A state governed by old people - Gerontocracy
+233. A part of the city especially the slum area - Ghetto
+234. One who eats too much - Glutton
+235. Writing or drawings scribbled, scratched, or other surface in a public place - Graffiti
+236. A building where grain is stored - Granary
+237. An expert in writing by hand - Graphologists
+238. An animal that lives in groups/Tending to associate with others of one's kind - Gregarious
+239. One who is easily deceived - Gullible
+240. A room or building with equipment for doing exercise - Gymnasium
+241. A false perception of things that do not really exist - Hallucination
+242. A very small village - Hamlet
+243. A spear used for hunting large fish - Harpoon
+244. A place of shelter for ships - Harbour
+245. A huge building with a spacious area to house aircrafts/A place where aircrafts are kept - Hangar
+246. A long and aggressive speech - Harangue
+247. A transport vehicle for conveying the coffin at a funeral - Hearse
+248. A person who is controlled by his wife - Henpecked
+249. Diverse in character or event - Heterogeneous
+250. To spend winter in a dormant state - Hibernate
+251. A person claiming to be superior in culture - Highbrow
+252. Killing of a person by another - Homicide
+253. Belonging to the same kind - Homogeneous
+254. Holding an office without receiving a pay - Honorary
+255. The sounds of owls - Hoot
+256. A large group of people - Horde
+257. The line where the land and sky seems to meet - Horizon
+258. The study of growing garden plants - Horticulture
+259. A person who is kept captive for fulfillment of demands of money or conditions - Hostage
+260. A box or cage for rabbits or small animals - Hutch
+261. Fear of water - Hydrophobia
+262. A song or music in praise of God - Hymn
+263. A person who suffers from an imaginary illness - Hypochondriac
+264. A pretence of having a virtuous character, moral or religious beliefs or principles, etc., that one does not really possess - Hypocrite
+265. A person who criticises traditional beliefs and customs - Iconoclast
+266. Which cannot be read - Illegible
+267. A trade that is prohibited by law - Illicit
+268. A sound that cannot be heard - Inaudiable
+269. Someone who has come to a different country from his own country for settling - Immigrant
+270. Resistant to particular infection - Immune
+271. Someone who dishonestly pretends to deceive under an assumed character - Imposter
+272. Something which cannot be taken by force - Impregnable
+273. That cannot be approached easily - Inaccessible
+274. One cannot be corrected/one who is beyond reform - Incorrigible
+275. Anger about an unfair situation or about someone's unfair behaviour - Indignation
+276. Something which cannot be understood - Incomprehensible
+277. That which cannot be believed - Incredible
+278. One who does not tire easily - indefatigable
+279. Something that is necessary or crucial - Indispensable
+280. too great be expressed or described in words - Ineffable
+281. One who cannot make mistake - Infallible
+282. Murder of an infant - Infanticide
+283. One who cannot be satisfied - Insatiable
+284. Incapable of paying debts - Insolvent
+285. The inability to obtain adequate sleep - Insomnia
+286. The examination or observation of one's own - Introspection
+287. One who does not express oneself freely - Introvert
+288. A person who supervises during an examination - Invigilator
+289. That which cannot be conquered - Invincible
+290. A decision on which one cannot go back - Irrevocable
+291. Travelling form place to place - Itinerant
+292. A detailed plan for a journey especially a list of places to visit - Itinerary
+293. One who rides horses in races - Jockey
+294. They study of law and the principles on which law is based - Jurisprudence
+295. Irresistible impulse to steal - Kleptomania
+296. A room or large cupboard for storing food - Larder
+297. A person who writes and edits dictionaries - Lexicography
+298. One who talks a lot - Loquacious
+299. A gentle song sund to put a child to sleep - Lullaby
+300. A distinguished conductor of classical music - Maestro
+301. A person who is never happy with what he has - Malcontent
+302. Causing or wanting to cause harm or evil to somebody - Malevolent
+303. A very large impressive residence/house - Mansion
+304. A book or paper written by hand - Manuscript
+305. An afternoon performance in a theatre or cinema - Matinee
+306. The killing of one's mother - Matricide
+307. A short statement of a general truth or rule of conduct - Maxim
+308. An area of grassland where animals graze - Meadow
+309. Something that serves as a reminder - Memento
+310. A soldier who fights for the sake of money - Mercenary
+311. A historical account or biography written from personal knowledge - Memoir
+312. Paying careful attention to every details - Meticulous
+313. Person who moves from one place to another, with intentions of finding work and settling, permanently or temporarily, at a new location - Migrant
+314. A place where coins, medals, or tokens are made - Mint
+315. A person who is known for his hatred towards the entire mankind - Misanthrope
+316. A gernal contempt towards mankind/hate for mankind - Misanthropy
+317. A person who loves money and hates spending it - Miser
+318. One who hates institution of marriage - Misogamist
+319. One who hates or discriminates against women - Misogynist
+320. A large crowd of people intent on causing trouble - Mob
+321. Government by king or queen - Monarchy
+322. A residence for monks or priests - Monastery
+323. The state of being married to one person at a time - Monogamy
+324. A place where dead boides are kept for identification - Morgue/mortuary
+325. A person which the same name as another - Namesake
+326. One having excessive interest or admiration for oneself - Narcissist
+327. A person, animal or plant belonging originally to a place - Native
+328. Downfall that satisfies natural justice - Nemesis
+329. Giving undue favours to one's own kith and kin - Nepotism
+330. One who mediates in a deal or complex situation - Negotiator
+331. Government by new or inexperienced hands - Neocracy
+332. A specialist or kidney - Nephrologist
+333. A doctor who specialises in the diseases of nerves, brain and spinal cord - Neurologist
+334. A sentimental longing of past experiences - Nostalgia
+335. Well known for bad qualities/evil reputation - Notorious
+336. The study of coins - Numismatics
+337. An extreme fear of darkness - Nyctophobia
+338. A news article that reports the recent death - Obituary
+339. Something that is no longer in use - Obsolete
+340. Relating to the countries belonging to the west - Occidental
+341. A long wandering or voyage usually marked by many changes of fortune - Odyssey
+342. Government run by a small group of people - Oligarchy
+343. One who is all powerful - Omnipotent
+344. Giving the worrying impression that something bad is going to happen - Ominous
+345. Found everywhere (ubiquitous) - Omnipresent
+346. One who known everything - Omniscient
+347. An animal or person that eats a variety of food of both plant and animal - Omnivore
+348. That through which light cannot pass - Opaque
+349. Study of snakes - Ophiology
+350. A doctor who specializes in the diseases of the eyes - Ophthalmologist
+351. One who see bright side of things - Optimist
+352. One who is skilled and eloquent in public speaking - Orator
+353. A place of land/garden in which fruit trees and grown - Orchard
+354. A person who studies birds - Ornithologist
+355. A child whose parents are dead - Orphan
+356. One who holds established opinions - Orthodox
+357. Doctor who deals with bone problems - Orthopedist
+358. A person who poposes war or use of military force - Pacifist
+359. A room where food, crockery and cutlery are kept - Pantry
+360. Photographers who follow celebrities to get their pictures to sell them - Paparazzi
+361. A remedy for all ills - Panacea
+362. Disease that spreads over a whole country or the whole world - Pandemic
+363. A doctrine that equates God with the foces forces of the universe - Pantheism
+364. The scientific study of diseases - Pathology
+365. Killing of one's father - Patricide
+366. One who loves his country - Patriot
+367. Overly concerned with minute details - Pedantic
+368. The method and practice of teaching - Pedagogy
+369. An arched structure in a garden having climbing plants - Pergola
+370. Eternal; lasting forever or indefinitely - Perpetual
+371. An extra profit or allowance additional to a main income etc. - Perquisite
+372. One who looks at the dark side of life - Pessimist
+373. Substance used for killing troublesome small animals like insects, mice etc./killing of pests - Pesticide
+374. A long wooden seat with a back for people to sit on in a church - Pew
+375. One who goes on foot - Pedestrain
+376. An illegally copied product - Pirated
+377. One who loves mankind - Philanthropist
+378. A person who collects or studies stamps - Philatelist
+379. One who dislikes art and culture - Philistine
+380. A person who likes or admires women - Philogynist
+381. The study of languages - Philology
+382. Stealing of ideas or writings of someone else - Plagiarism
+383. Government by the riches people of a country - Plutocracy
+384. The customs of having more than one husband or wife at a time - Polygamy
+385. A person who knows and is able to use several languages - Polyglot
+386. Something that can be carried easily - portable
+387. Occurring or coming into existence after a person's death - Posthumous
+388. A medical examination of a dead body - Postmortem
+389. Fit to drink - Potable
+390. An animal that lives by killing and eating other animals - Predator
+391. To keep postponing doing a task later because you're lazy - Procrastinate
+392. An introduction to a literary work continuing for a long time - Prologue
+393. To forbid something, especially by law - Proscribe
+394. The main character in a story or play - Protagonist
+395. One who studies election trends by means of opinion polls - Psephologist
+396. An imaginary name assumed by an author - Pseudonym
+397. The scientific study of the mind and how it influences behaviour - Psychology
+398. An obsessive desire to set fire to things - Pyromania
+399. A person preoccupied with an unrealistically optimistic approach to life - Quixotic
+400. A doctor who specialists in X-rays and other kind of radiations - Radiologist
+401. Opposing or taking arms against a government or ruler - Rebel
+402. Someone who lives in solitude - Recluse
+403. Adjust or make right; correct, amend - Rectify
+404. A process involving too much official formality - Red-tapism
+405. Dress with medals, ribbons worn at official ceremony/symbols or royalty - Regalia
+406. The murder of a king - Regicide
+407. Something belonging to or surviving from an earlier period - Relic
+408. A large natural or artificial lake used as a source of water supply - Reservoir
+409. A person very reserved in speech - Reticent
+410. Action of reviewing past events in one's life - Retrospection
+411. The art of effective or persuasive speaking or writing - Rhetoric
+412. The act of destroying or damaging something - Sabotage
+413. Violation of something holy or sacred - Sacrilege
+414. One who helps a person in need - Samaritan
+415. A protected place for birds and animals/A nature reserve for birds or animals - Sanctuary
+416. A sacred place - Sanctum
+417. Full of criticism and mockery - Satire
+418. A person who is blamed for the wrong doings of others - Scapegoat
+419. The artist who make sculptures - Sculptor
+420. A group of fish - School
+421. The scientific study of earthquakes - Seismology
+422. Government not connected with religious or spiritual matter - Secular
+423. A happy development or happening or events by chance - Serendipity
+424. Raering of silk worm - Sericulture
+425. A close-fitting cover for a sword or knife - Sheath
+426. A large number of fish swimming together - Shoal
+427. The dark shape and Outline of something visible against a bright background - Silhouette
+428. An office with high salary but not work - Sinecure
+429. A brief or short stay at a place - Sojourn
+430. A speech made to oneself - Soliloquy
+431. One who walks in sleep - Somnambulist
+432. A drug or other substance that induces sleep - Soporific
+433. The murder of one's sister - Sororicide
+434. Something kept as reminder of an event - Souvenir
+435. A group of military aircraft or ships - Squadron
+436. A person who is indifferent to pain and pleasure - Stoic
+437. One who loads and unloads ships - Stevedore
+438. A government by the military class - Stratocracy
+439. Right to vote in a election - Suffrage
+440. Group of bees - Swarm
+441. A person who preserves skin of animals - Taxidermist
+442. Science regarding principals of classifications - Taxonomy
+443. A person who never takes alcoholic drinks - Teetotaller
+444. Power of reading thoughts of others - Telepathy
+445. A formal statement testifying to someone's character and qualifications - Testimonial
+446. The study of the nature of god and religious beliefs - Theology
+447. A system of government in which priests rule in the name of Gods or a god - Theocracy
+448. Long and angry speech - Tirade
+449. A young child just beginning to walk - Toddler
+450. A strong and fast moving stream of water - Torrent
+451. Person who betrays his own country - Traitor
+452. Calm, quiet and free of disturbance - Tranquil
+453. To enter unlawfully upon the land of another - Trespass
+454. Happening every three years - Triennial
+455. A set of three related works by the same author - Trilogy
+456. A student who idly or without excuse absent himself/herself from school - Truant
+457. Something of little value or importance - Trivial
+458. One who changes sides - Turncoat
+459. A mythological animal with one horn on its forehead - Unicorn
+460. An imagined place or state of things in which everything is perfect - Utopia
+461. One who lends money at very high rates of interest - Usurer
+462. A person who is unduly anxious about his/her health - Valetudinarian
+463. A slight fault that can be forgiven - Venial
+464. In exactly the same words as were used originally - Verbatim
+465. One who adapts oneself readily to various situations - Versatile
+466. A person having significant experience in an occupation - Veteran
+467. A person who possesses outstanding technical ability in a particular art or field - Virtuoso
+468. Proved to be right - Vindicated
+469. One who offers one's services without being forced - Volunteer
+470. A decision that is made by jury in a court - Verdict
+471. A long sea journey - Voyage
+472. To walk or move in a leisurely or aimless way - Wander
+473. A place where clothes are kept - Wardrobe
+474. Feeling or showing extreme tiredness - Weary
+475. A man whose wife is dead - Widower
+476. A decorative ring of flowers and leaves - Wreath
+477. Great sorrow or distress - Woe
+478. Fear of foreigners - Xenophobia
+479. A wooden object used for connecting animals that are pulling a vehicle - Yoke
+480. A person who is fanatical and uncompromising in pursuit of their religious, political, or other ideals - Zealot
+481. A diagram showing the path of planets - Zodiac
+482. A thing which happens every two years - Biennial
+483. The study of ancient writings and scriptures - Palaeography
+484. One who is not sure about the existence of god - Agnostic
+485. The study of fossils - Paleontology
+486. The practice of having more than one husband at a time - Polyandry`;
+
+    // 3. FIREBASE CONFIG
+    const firebaseConfig = {
+      apiKey: "AIzaSyCOtV0i7nkCGO8JpmRD8YV9IU2RL8cYMgI",
+      authDomain: "vocab-pro-b0542.firebaseapp.com",
+      projectId: "vocab-pro-b0542",
+      storageBucket: "vocab-pro-b0542.firebasestorage.app",
+      messagingSenderId: "358405065430",
+      appId: "1:358405065430:web:a276f004107a4dfd3dd777"
+    };
+
+    let db, auth;
+    const statusDiv = document.getElementById('conn-text');
+    const liveDot = document.getElementById('live-dot');
+    const headerName = document.getElementById('header-name');
+
+    try {
+        if(typeof firebase !== 'undefined') {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            auth = firebase.auth();
+            statusDiv.innerText = "Online";
+            statusDiv.style.color = "var(--success)";
+            liveDot.className = "live-indicator live-on";
+        } else {
+            throw new Error("SDK Missing");
+        }
+    } catch(e) {
+        statusDiv.innerText = "Offline Mode";
+        statusDiv.style.color = "var(--danger)";
+        console.log("Firebase not loaded, offline mode active");
+    }
+
+    // 4. LOGIC
+    function mulberry32(a) { return function() { var t = a += 0x6D2B79F5; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; } }
+
+    window.app = {
+        words: [],
+        data: { score: 0, xp: 0, history: {}, seen: [], apiKey: "AIzaSyDJvoeMlz4NWpV2FAR0TOSRPchkVQvQejA", name: "Guest" },
+        currentBatch: [],
+        gameId: null,
+        user: null,
+        isHost: false,
+        unsubscribe: null,
+        heartbeatInterval: null,
+        mode: 'solo',
+
+        init() {
+            try {
+                this.parseWords();
+                this.loadData();
+                headerName.innerText = this.data.name;
+                
+                if(auth) {
+                    auth.signInAnonymously().then(u => { this.user = u.user; }).catch(e => console.log("Auth Error:", e));
+                }
+                const params = new URLSearchParams(window.location.search);
+                if (params.has('game')) {
+                    this.gameId = params.get('game');
+                    setTimeout(() => this.checkNameAndJoin(), 500); 
+                } else {
+                    this.updateDashboard();
+                }
+            } catch(e) {
+                alert("Init Error: " + e.message);
+            }
+        },
+
+        parseWords() {
+            this.words = rawData.trim().split('\n').map(line => {
+                const parts = line.split(' - ');
+                if(parts.length < 2) return null;
+                return { word: parts[1].trim(), meaning: parts[0].replace(/^[\d\*\.]+\s+/, '').trim() };
+            }).filter(x => x);
+        },
+
+        loadData() {
+            const saved = localStorage.getItem('vm_final_stable_data');
+            if(saved) this.data = { ...this.data, ...JSON.parse(saved) };
+            if(!this.data.seen) this.data.seen = []; 
+        },
+        saveData() { localStorage.setItem('vm_final_stable_data', JSON.stringify(this.data)); this.updateDashboard(); },
+        resetData() { if(confirm("Reset Data?")) { localStorage.removeItem('vm_final_stable_data'); location.reload(); } },
+        logout() { if(auth) auth.signOut(); localStorage.removeItem('vm_final_stable_data'); location.reload(); },
+
+        checkNameAndJoin() {
+            if (this.data.name === "Guest") document.getElementById('name-modal').classList.add('active');
+            else if (this.gameId) this.joinGameLobby();
+        },
+        saveName() {
+            const n = document.getElementById('player-name-input').value.trim();
+            if (!n) return;
+            this.data.name = n;
+            headerName.innerText = n;
+            this.saveData();
+            document.getElementById('name-modal').classList.remove('active');
+            if (this.gameId) this.joinGameLobby();
+        },
+
+        async setupOnlineGame() {
+            if(!db) return alert("Offline Mode: Multiplayer not available.");
+            if(this.data.name === "Guest") { this.gameId = 'new'; this.checkNameAndJoin(); return; }
+            
+            this.gameId = Math.floor(Math.random()*900000)+100000;
+            const seed = Math.random();
+            await db.collection('vocab_games').doc(this.gameId.toString()).set({
+                status: 'waiting', seed: seed, host: this.user.uid,
+                players: { [this.user.uid]: { name: this.data.name, score: 0, completed: false, lastSeen: Date.now() } }
+            });
+            this.isHost = true;
+            this.joinGameLobby();
+        },
+
+        joinGameLobby() {
+            if(!db) return;
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('lobby-ui').style.display = 'block';
+            document.getElementById('lobby-code-display').innerText = this.gameId;
+            this.startHeartbeat();
+
+            const ref = db.collection('vocab_games').doc(this.gameId.toString());
+            this.unsubscribe = ref.onSnapshot(snap => {
+                if (!snap.exists) return location.reload();
+                const d = snap.data();
+                
+                if (this.user && !d.players[this.user.uid]) {
+                    ref.update({ [`players.${this.user.uid}`]: { name: this.data.name, score: 0, completed: false, lastSeen: Date.now() } });
+                }
+                
+                document.getElementById('lobby-players').innerHTML = Object.values(d.players).map(p => {
+                    const isOnline = (Date.now() - (p.lastSeen || 0)) < 15000;
+                    return `<div class="player-chip"><span>${isOnline?'🟢':'⚪'} ${p.name}</span><span>${p.completed?'DONE':(isOnline?'On':'Away')}</span></div>`;
+                }).join('');
+
+                if (this.isHost) document.getElementById('host-controls').style.display = 'block';
+                else document.getElementById('client-wait').style.display = 'block';
+
+                if (d.status === 'started' && document.getElementById('quiz-feed').innerHTML === '') this.startRound(d.seed, 'multi');
+            });
+        },
+
+        startHeartbeat() {
+            if(this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = setInterval(() => {
+                if(this.gameId && this.user && db) {
+                    db.collection('vocab_games').doc(this.gameId.toString()).update({
+                        [`players.${this.user.uid}.lastSeen`]: Date.now()
+                    }).catch(()=>{});
+                }
+            }, 5000); 
+        },
+
+        async startOnlineRound() { if(db) await db.collection('vocab_games').doc(this.gameId.toString()).update({ status: 'started' }); },
+
+        getBatch(count, seed) {
+            const rng = mulberry32(seed ? Math.floor(seed*10000) : Date.now());
+            let available = this.words.filter(w => !this.data.seen.includes(w.word));
+            if (available.length < count) {
+                this.data.seen = [];
+                available = [...this.words];
+            }
+            const shuffled = available.map(v => ({ v, s: rng() })).sort((a,b)=>a.s-b.s).map(x=>x.v);
+            const batch = shuffled.slice(0, count);
+            const newSeen = batch.map(w => w.word);
+            this.data.seen = [...this.data.seen, ...newSeen];
+            this.saveData();
+            return batch;
+        },
+
+        startRound(seed, mode) {
+            this.mode = mode; 
+            document.getElementById('lobby-ui').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('feed-container').style.display = 'block';
+            
+            const rng = mulberry32(seed ? Math.floor(seed*10000) : Date.now());
+            let pool;
+            if (mode === 'solo') pool = this.getBatch(20, null); 
+            else pool = this.words.map(v => ({ v, s: rng() })).sort((a,b)=>a.s-b.s).map(x=>x.v).slice(0, 20);
+
+            this.currentBatch = pool.map((t, i) => {
+                const distract = this.words.filter(w=>w.word!==t.word).map(w=>({w,s:rng()})).sort((a,b)=>b.s-a.s).slice(0,3).map(x=>x.w.word);
+                const opts = [...distract, t.word].map(w=>({w,s:rng()})).sort((a,b)=>b.s-a.s).map(x=>x.w);
+                return { id: Date.now()+i, q: t.meaning, correct: t.word, opts: opts, sel: null };
+            });
+            this.renderFeed();
+            document.getElementById('finish-btn').style.display = 'block';
+        },
+        
+        startSolo() { this.startRound(null, 'solo'); },
+
+        renderFeed() {
+            const c = document.getElementById('quiz-feed');
+            c.innerHTML = '';
+            this.currentBatch.forEach((q, idx) => {
+                const safeWord = q.correct.replace(/'/g, "\\'");
+                c.innerHTML += `
+                    <div class="session-card" id="card-${q.id}">
+                        <div class="q-header">
+                            <div class="q-num">Q${idx+1}</div>
+                            <div class="q-text">${q.q}</div>
+                        </div>
+                        <div class="options-grid">
+                            ${q.opts.map(opt => {
+                                const safeOpt = opt.replace(/'/g, "\\'");
+                                return `<button class="opt-btn" data-val="${safeOpt}" onclick="window.app.answer(${q.id}, '${safeOpt}')">
+                                    <span>${opt}</span>
+                                    <span class="audio-icon-btn" onclick="event.stopPropagation(); window.app.speak('${safeOpt}')">🔊</span>
+                                </button>`
+                            }).join('')}
+                        </div>
+                    </div>`;
+            });
+        },
+
+        answer(id, selected) {
+            const q = this.currentBatch.find(x => x.id === id);
+            
+            if (this.mode === 'solo') {
+                if (q.sel) return; 
+                q.sel = selected;
+                const isCorrect = selected === q.correct;
+                if(isCorrect) { this.data.score += 1; this.data.xp += 10; } 
+                else { this.data.score -= 0.5; }
+                this.saveData();
+
+                const card = document.getElementById(`card-${id}`);
+                card.querySelectorAll('.opt-btn').forEach(btn => {
+                    btn.disabled = true;
+                    if(btn.dataset.val === q.correct) btn.classList.add('correct');
+                    else if(btn.dataset.val === selected && !isCorrect) btn.classList.add('wrong');
+                });
+            } else {
+                q.sel = selected;
+                const card = document.getElementById(`card-${id}`);
+                card.querySelectorAll('.opt-btn').forEach(btn => {
+                    btn.classList.remove('selected');
+                    if(btn.dataset.val === selected) btn.classList.add('selected');
+                });
+            }
+        },
+
+        async finishGame() {
+            // SAFE MODE: Local Calc First
+            try {
+                document.getElementById('finish-btn').style.display = 'none'; // Instant hide
+                
+                let sessionScore = 0; 
+                let correctCount = 0;
+                const reviewList = document.getElementById('review-container');
+                reviewList.innerHTML = ''; 
+
+                this.currentBatch.forEach(q => {
+                    if(q.sel) {
+                        const isCorrect = q.sel === q.correct;
+                        if (isCorrect) correctCount++;
+                        
+                        if (this.mode === 'multi') {
+                            if (isCorrect) { sessionScore += 1; this.data.score += 1; this.data.xp += 10; } 
+                            else { sessionScore -= 0.5; this.data.score -= 0.5; }
+                        } else {
+                            if (isCorrect) sessionScore += 1; else sessionScore -= 0.5;
+                        }
+
+                        // REVIEW GENERATION
+                        const safeWord = q.correct.replace(/'/g, "\\'");
+                        const wrongBadge = !isCorrect ? `<span class="ans-badge ans-wrong">You: ${q.sel}</span>` : '';
+                        
+                        reviewList.innerHTML += `
+                            <div class="review-item">
+                                <div class="review-q">${q.q}</div>
+                                <div class="review-ans-row">
+                                    <span class="ans-badge ans-correct">Ans: ${q.correct}</span>
+                                    ${wrongBadge}
+                                </div>
+                                <div class="review-tools">
+                                    <button class="tool-btn" onclick="window.app.askAI('sentence', '${safeWord}', 'review-ai-${q.id}')">Meaning & Sentence</button>
+                                    <button class="tool-btn" onclick="window.app.askAI('synant', '${safeWord}', 'review-ai-${q.id}')">Synonyms & Antonyms</button>
+                                </div>
+                                <div id="review-ai-${q.id}" class="ai-box-review"></div>
+                            </div>
+                        `;
+                    }
+                });
+
+                // UPDATE UI IMMEDIATELY
+                const pct = Math.round((correctCount/this.currentBatch.length)*100) || 0;
+                document.getElementById('final-pct').innerText = pct + "%";
+                document.getElementById('final-circle').style.background = `conic-gradient(var(--success) ${pct}%, #334155 0)`;
+                document.getElementById('final-score-txt').innerText = `Score: ${sessionScore}`;
+                document.getElementById('report-correct').innerText = correctCount;
+                document.getElementById('report-wrong').innerText = this.currentBatch.filter(q=>q.sel).length - correctCount;
+                
+                document.getElementById('score-modal').classList.add('active');
+
+                // SYNC IN BACKGROUND
+                if(this.mode === 'multi') {
+                    this.saveData();
+                    this.currentBatch.forEach(q => {
+                        if(!q.sel) return;
+                        const card = document.getElementById(`card-${q.id}`);
+                        if(card) {
+                            card.querySelectorAll('.opt-btn').forEach(btn => {
+                                btn.disabled = true;
+                                if(btn.dataset.val === q.correct) btn.classList.add('correct');
+                                else if(btn.dataset.val === q.sel && q.sel !== q.correct) btn.classList.add('wrong');
+                            });
+                        }
+                    });
+
+                    if(db && this.gameId) {
+                        const ref = db.collection('vocab_games').doc(this.gameId.toString());
+                        await ref.update({ [`players.${this.user.uid}.score`]: sessionScore, [`players.${this.user.uid}.completed`]: true });
+                        document.getElementById('online-lb-container').style.display = 'block';
+                        const snap = await ref.get();
+                        const players = Object.values(snap.data().players).sort((a,b)=>b.score-a.score);
+                        document.getElementById('final-lb-list').innerHTML = players.map((p,i)=>`<div>#${i+1} ${p.name}: ${p.score}</div>`).join('');
+                    }
+                }
+            } catch(e) {
+                alert("Error calculating score: " + e.message);
+            }
+        },
+
+        async askAI(type, word, targetId) {
+            const box = document.getElementById(targetId);
+            if(!box) return;
+            box.style.display = 'block'; box.innerHTML = "Thinking...";
+            
+            let prompt = "";
+            if (type === 'sentence') prompt = `Define "${word}" simply and use it in a complex sentence.`;
+            if (type === 'synant') prompt = `Provide 2 Synonyms and 2 Antonyms for "${word}". Format: Syn: ... | Ant: ...`;
+
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.data.apiKey}`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const d = await res.json();
+                box.innerHTML = d.candidates[0].content.parts[0].text;
+            } catch(e) { box.innerHTML = "AI Error."; }
+        },
+
+        updateDashboard() {
+            document.getElementById('stat-score').innerText = Number(this.data.score).toFixed(1).replace(/\.0$/, '');
+            document.getElementById('xp-bar').style.width = `${(this.data.xp%500)/5}%`;
+            document.getElementById('xp-text').innerText = `${this.data.xp%500}/500`;
+            document.getElementById('lvl-num').innerText = Math.floor(this.data.xp/500)+1;
+            document.getElementById('seen-count').innerText = this.data.seen ? this.data.seen.length : 0;
+            document.getElementById('seen-count-box').innerText = this.data.seen ? this.data.seen.length : 0;
+        },
+
+        copyLink() { 
+            const link = `${window.location.protocol}//${window.location.host}${window.location.pathname}?game=${this.gameId}`;
+            navigator.clipboard.writeText(link).then(()=>alert("Link Copied!")); 
+        },
+        
+        speak(t) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(t)); }
+    };
+    window.onload = () => window.app.init();
+</script>
+</body>
+</html>
