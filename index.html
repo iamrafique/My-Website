@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vocab Master - Final</title>
+    <title>Vocab Master - Final Fixed</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
@@ -24,16 +24,25 @@
             --warning: #f59e0b;
             --selected: #3b82f6;
             --modal-overlay: rgba(0, 0, 0, 0.85);
+            
+            /* Toggle Specifics */
+            --toggle-bg: #000000;
+            --toggle-circle: #ffffff;
+            --toggle-text: #ffffff;
         }
 
         /* LIGHT THEME OVERRIDES */
         body.light-theme {
-            --bg-body: #f1f5f9;
+            --bg-body: #f8fafc;
             --bg-card: #ffffff;
             --bg-element: #e2e8f0;
             --text-main: #0f172a;
             --text-sub: #64748b;
-            --modal-overlay: rgba(255, 255, 255, 0.85);
+            --modal-overlay: rgba(255, 255, 255, 0.9);
+            
+            --toggle-bg: #e2e8f0; 
+            --toggle-circle: #ffffff;
+            --toggle-text: #0f172a;
         }
 
         body {
@@ -43,7 +52,7 @@
             margin: 0; padding: 0;
             display: flex; justify-content: center;
             min-height: 100vh;
-            padding-top: 60px; 
+            padding-top: 70px; 
             padding-bottom: 140px; 
             transition: background-color 0.3s, color 0.3s;
         }
@@ -59,9 +68,10 @@
             display: flex; justify-content: space-between; align-items: center;
             box-sizing: border-box;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            height: 65px;
         }
         .header-left { display: flex; align-items: center; gap: 15px; }
-        .header-right { display: flex; align-items: center; gap: 15px; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
 
         .live-indicator { 
             display: inline-block; width: 8px; height: 8px; 
@@ -70,11 +80,54 @@
         }
         .live-on { background: var(--success); box-shadow: 0 0 8px var(--success); }
 
-        .theme-toggle-btn {
-            background: none; border: none; font-size: 1.2rem; cursor: pointer;
-            padding: 5px; border-radius: 50%; transition: transform 0.2s;
+        /* --- NEW PILL TOGGLE SWITCH CSS --- */
+        .toggle-container {
+            width: 130px; height: 36px;
+            border-radius: 50px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            display: flex; align-items: center;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
-        .theme-toggle-btn:hover { transform: scale(1.1); background: rgba(128,128,128,0.1); }
+
+        /* Default Dark Mode Look */
+        body:not(.light-theme) .toggle-container { background: #000000; border: 1px solid #333; }
+        body:not(.light-theme) .toggle-knob { left: 4px; }
+        body:not(.light-theme) .toggle-label { right: 10px; text-align: right; color: white; }
+        body:not(.light-theme) .icon-moon { display: block; }
+        body:not(.light-theme) .icon-sun { display: none; }
+        body:not(.light-theme) .label-text::after { content: "NIGHT MODE"; }
+
+        /* Light Mode Look */
+        body.light-theme .toggle-container { background: #e2e8f0; border: 1px solid #cbd5e1; }
+        body.light-theme .toggle-knob { left: calc(100% - 32px); }
+        body.light-theme .toggle-label { left: 10px; text-align: left; color: #334155; }
+        body.light-theme .icon-moon { display: none; }
+        body.light-theme .icon-sun { display: block; }
+        body.light-theme .label-text::after { content: "DAY MODE"; }
+
+        .toggle-knob {
+            width: 28px; height: 28px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 3px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+        }
+        .toggle-label {
+            position: absolute;
+            width: 80px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            pointer-events: none;
+            user-select: none;
+        }
 
         .timer-badge {
             background: var(--warning); color: #fff; padding: 4px 12px; 
@@ -125,6 +178,18 @@
         .lobby-panel { background: var(--bg-card); border-radius: 24px; padding: 30px; text-align: center; margin-top: 20px; display: none; }
         .lobby-code { font-size: 2.5rem; font-weight: 800; letter-spacing: 5px; color: var(--primary); margin: 20px 0; background: rgba(99, 102, 241, 0.1); padding: 15px; border-radius: 12px; cursor: pointer; font-family: monospace; }
         .player-chip { background: var(--bg-element); padding: 10px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+
+        /* Admin Input */
+        .admin-input-group {
+            background: var(--bg-element); padding: 15px; border-radius: 12px; margin-bottom: 15px;
+            border: 1px solid rgba(99, 102, 241, 0.3); text-align: left;
+        }
+        .admin-input-group label { display: block; font-size: 0.8rem; margin-bottom: 5px; color: var(--text-sub); }
+        .timer-input { 
+            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--text-sub); 
+            background: var(--bg-body); color: var(--text-main); font-family: inherit; font-weight: bold;
+            box-sizing: border-box; font-size: 1.1rem;
+        }
 
         /* IN-GAME TOP BAR (Multiplayer) */
         .ingame-players-bar {
@@ -208,7 +273,15 @@
     </div>
     <div class="header-right">
         <div id="timer-display" class="timer-badge">⏳ 250s</div>
-        <button class="theme-toggle-btn" onclick="window.app.toggleTheme()">🌓</button>
+        
+        <div class="toggle-container" onclick="window.app.toggleTheme()">
+            <div class="toggle-knob">
+                <span class="icon-moon">🌙</span>
+                <span class="icon-sun">☀️</span>
+            </div>
+            <div class="toggle-label"><span class="label-text"></span></div>
+        </div>
+
     </div>
 </div>
 
@@ -247,9 +320,15 @@
         <h2>GAME LOBBY</h2>
         <div class="lobby-code" id="lobby-code-display" onclick="window.app.copyLink()">----</div>
         <div class="player-list" id="lobby-players"></div>
+        
         <div id="host-controls" style="display:none; margin-top:20px;">
+            <div class="admin-input-group">
+                <label>⏱️ Game Duration (Seconds)</label>
+                <input type="number" id="admin-timer-input" class="timer-input" value="250" min="30" max="600">
+            </div>
             <button class="ctrl-btn btn-multi" style="width:100%" onclick="window.app.startOnlineRound()">START GAME</button>
         </div>
+
         <div id="client-wait" style="display:none; color:#f59e0b; margin-top:20px;">Waiting for host...</div>
         <button onclick="window.app.quitToMenu()" style="margin-top:20px; background:none; border:none; color:#94a3b8;">Back</button>
     </div>
@@ -841,6 +920,7 @@
         unsubscribe: null,
         heartbeatInterval: null,
         timerInterval: null,
+        scoreRefreshInterval: null, // NEW FOR AUTO REFRESH
         mode: 'solo',
         timeLeft: 250,
 
@@ -889,12 +969,16 @@
             this.saveData();
         },
         applyTheme() {
-            if(this.data.theme === 'light') document.body.classList.add('light-theme');
-            else document.body.classList.remove('light-theme');
+            const toggle = document.getElementById('theme-toggle');
+            if(this.data.theme === 'light') {
+                document.body.classList.add('light-theme');
+            } else {
+                document.body.classList.remove('light-theme');
+            }
         },
 
         quitToMenu() {
-            // Forces clean reload without query params (quits session)
+            if(this.scoreRefreshInterval) clearInterval(this.scoreRefreshInterval);
             window.location.href = window.location.pathname;
         },
 
@@ -960,10 +1044,23 @@
                      </div>`;
                 }).join('');
 
-                if (this.isHost) document.getElementById('host-controls').style.display = 'block';
-                else document.getElementById('client-wait').style.display = 'block';
+                // *** FIXED LOGIC: CHECK HOST STATUS ***
+                if (this.user && d.host === this.user.uid) {
+                    this.isHost = true;
+                    document.getElementById('host-controls').style.display = 'block';
+                    document.getElementById('client-wait').style.display = 'none';
+                } else {
+                    this.isHost = false;
+                    document.getElementById('host-controls').style.display = 'none';
+                    document.getElementById('client-wait').style.display = 'block';
+                }
 
-                if (d.status === 'started' && document.getElementById('quiz-feed').innerHTML === '') this.startRound(d.seed, 'multi');
+                // CHECK FOR TIMER DURATION FROM HOST
+                if (d.status === 'started' && document.getElementById('quiz-feed').innerHTML === '') {
+                    // Default to 250 if not set
+                    const duration = d.timerDuration ? parseInt(d.timerDuration) : 250;
+                    this.startRound(d.seed, 'multi', duration);
+                }
             });
         },
 
@@ -978,7 +1075,18 @@
             }, 5000); 
         },
 
-        async startOnlineRound() { if(db) await db.collection('vocab_games').doc(this.gameId.toString()).update({ status: 'started' }); },
+        async startOnlineRound() { 
+            if(db) {
+                // READ ADMIN TIMER INPUT
+                const durationInput = document.getElementById('admin-timer-input').value;
+                const duration = durationInput ? parseInt(durationInput) : 250;
+                
+                await db.collection('vocab_games').doc(this.gameId.toString()).update({ 
+                    status: 'started',
+                    timerDuration: duration // SAVE TO DB
+                }); 
+            }
+        },
 
         // --- NEW SEMANTIC OPTION LOGIC (MULTI & SOLO) ---
         detectCategory(word, meaning) {
@@ -1023,7 +1131,7 @@
             return batch;
         },
 
-        startRound(seed, mode) {
+        startRound(seed, mode, duration = 250) {
             this.mode = mode; 
             document.getElementById('lobby-ui').style.display = 'none';
             document.getElementById('dashboard').style.display = 'none';
@@ -1033,7 +1141,7 @@
             if(mode === 'multi') {
                 document.getElementById('ingame-players-container').style.display = 'flex';
                 document.getElementById('timer-display').style.display = 'block';
-                this.startTimer(250);
+                this.startTimer(duration); // USE CUSTOM DURATION
             } else {
                 document.getElementById('timer-display').style.display = 'none';
             }
@@ -1085,6 +1193,9 @@
             if(this.timerInterval) clearInterval(this.timerInterval);
             const display = document.getElementById('timer-display');
             
+            // Initial Display
+            display.innerText = `⏳ ${this.timeLeft}s`;
+
             this.timerInterval = setInterval(() => {
                 this.timeLeft--;
                 display.innerText = `⏳ ${this.timeLeft}s`;
@@ -1222,6 +1333,10 @@
                         await ref.update({ [`players.${this.user.uid}.score`]: sessionScore, [`players.${this.user.uid}.completed`]: true });
                         document.getElementById('online-lb-container').style.display = 'block';
                         this.refreshLeaderboard(); // Load initial LB
+
+                        // START AUTO REFRESH (Every 1 second)
+                        if(this.scoreRefreshInterval) clearInterval(this.scoreRefreshInterval);
+                        this.scoreRefreshInterval = setInterval(() => this.refreshLeaderboard(), 1000);
                     }
                 }
             } catch(e) {
@@ -1231,8 +1346,12 @@
 
         async refreshLeaderboard() {
             if(!db || !this.gameId) return;
+            // CHECK IF MODAL IS OPEN (To prevent errors if user navigates away)
+            if(!document.getElementById('score-modal').classList.contains('active')) return;
+
             const ref = db.collection('vocab_games').doc(this.gameId.toString());
             const snap = await ref.get();
+            if(!snap.exists) return;
             const players = Object.values(snap.data().players).sort((a,b) => b.score - a.score);
             
             // FAIR RANKING LOGIC (Dense Ranking)
