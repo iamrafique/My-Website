@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vocab Master - Final Stable</title>
+    <title>Vocab Master - Semantic Edition</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
@@ -12,73 +12,103 @@
 
     <style>
         :root {
-            --bg-dark: #0f172a;
-            --card-bg: #1e293b;
+            /* DARK THEME (DEFAULT) */
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-element: #334155;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
             --primary: #6366f1;
-            --text-light: #f8fafc;
-            --text-muted: #94a3b8;
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
             --selected: #3b82f6;
+            --modal-overlay: rgba(0, 0, 0, 0.85);
+        }
+
+        /* LIGHT THEME OVERRIDES */
+        body.light-theme {
+            --bg-body: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-element: #e2e8f0;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --modal-overlay: rgba(255, 255, 255, 0.85);
         }
 
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-light);
+            background-color: var(--bg-body);
+            color: var(--text-main);
             margin: 0; padding: 0;
             display: flex; justify-content: center;
             min-height: 100vh;
             padding-top: 60px; 
             padding-bottom: 140px; 
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .app-container { width: 100%; max-width: 700px; padding: 20px; box-sizing: border-box; }
 
-        /* USER HEADER */
+        /* HEADER */
         .user-header-bar {
             position: fixed; top: 0; left: 0; width: 100%;
-            background: rgba(30, 41, 59, 0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: var(--bg-card);
+            border-bottom: 1px solid rgba(128,128,128,0.1);
             padding: 10px 20px; z-index: 1000;
             display: flex; justify-content: space-between; align-items: center;
             box-sizing: border-box;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .header-right { display: flex; align-items: center; gap: 15px; }
+
         .live-indicator { 
             display: inline-block; width: 8px; height: 8px; 
-            background: var(--text-muted); border-radius: 50%; 
+            background: var(--text-sub); border-radius: 50%; 
             margin-right:5px;
         }
         .live-on { background: var(--success); box-shadow: 0 0 8px var(--success); }
 
+        .theme-toggle-btn {
+            background: none; border: none; font-size: 1.2rem; cursor: pointer;
+            padding: 5px; border-radius: 50%; transition: transform 0.2s;
+        }
+        .theme-toggle-btn:hover { transform: scale(1.1); background: rgba(128,128,128,0.1); }
+
+        .timer-badge {
+            background: var(--warning); color: #fff; padding: 4px 12px; 
+            border-radius: 20px; font-weight: 800; font-size: 0.9rem;
+            display: none; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+        }
+
         /* FOOTER */
         .developer-footer {
             position: fixed; bottom: 0; left: 0; width: 100%;
-            background: rgba(15, 23, 42, 0.95);
-            border-top: 1px solid rgba(255,255,255,0.05);
-            color: #64748b; text-align: center;
+            background: var(--bg-card);
+            border-top: 1px solid rgba(128,128,128,0.1);
+            color: var(--text-sub); text-align: center;
             padding: 12px; font-size: 0.75rem; font-weight: 600;
             letter-spacing: 1px; text-transform: uppercase;
-            z-index: 900; backdrop-filter: blur(5px);
+            z-index: 900;
         }
 
         /* DASHBOARD */
         .dashboard-card {
-            background: var(--card-bg); border-radius: 24px; padding: 30px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); text-align: center;
+            background: var(--bg-card); border-radius: 24px; padding: 30px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); text-align: center;
+            transition: background-color 0.3s;
         }
 
         .xp-container { margin-bottom: 25px; }
         .xp-info { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 700; color: var(--primary); }
-        .progress-track { width: 100%; height: 12px; background: #334155; border-radius: 6px; overflow: hidden; }
+        .progress-track { width: 100%; height: 12px; background: var(--bg-element); border-radius: 6px; overflow: hidden; }
         .progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #a855f7); width: 0%; transition: width 0.5s ease; }
 
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 30px; }
-        .stat-box { background: #334155; padding: 15px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; }
+        .stat-box { background: var(--bg-element); padding: 15px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; }
         .stat-val { font-size: 1.4rem; font-weight: 800; }
-        .stat-lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+        .stat-lbl { font-size: 0.7rem; color: var(--text-sub); text-transform: uppercase; }
 
         .game-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .ctrl-btn {
@@ -92,46 +122,67 @@
         .btn-multi { background: linear-gradient(135deg, #f59e0b, #ea580c); color: white; }
 
         /* LOBBY & QUIZ */
-        .lobby-panel { background: var(--card-bg); border-radius: 24px; padding: 30px; text-align: center; margin-top: 20px; display: none; }
+        .lobby-panel { background: var(--bg-card); border-radius: 24px; padding: 30px; text-align: center; margin-top: 20px; display: none; }
         .lobby-code { font-size: 2.5rem; font-weight: 800; letter-spacing: 5px; color: var(--primary); margin: 20px 0; background: rgba(99, 102, 241, 0.1); padding: 15px; border-radius: 12px; cursor: pointer; font-family: monospace; }
-        .player-chip { background: #334155; padding: 10px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+        .player-chip { background: var(--bg-element); padding: 10px 15px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
 
-        .session-card { background: var(--card-bg); border-radius: 20px; margin-bottom: 25px; overflow: hidden; animation: slideUp 0.3s ease-out; }
+        /* IN-GAME TOP BAR (Multiplayer) */
+        .ingame-players-bar {
+            display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; margin-bottom: 10px;
+            white-space: nowrap; border-bottom: 1px solid rgba(128,128,128,0.1);
+            scrollbar-width: none;
+        }
+        .ingame-players-bar::-webkit-scrollbar { display: none; }
+        .mini-player-pill {
+            background: var(--bg-element); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; 
+            display: flex; align-items: center; gap: 5px; color: var(--text-sub); border: 1px solid transparent;
+        }
+        .mini-player-pill.is-me { border-color: var(--primary); background: rgba(99,102,241,0.2); color: var(--primary); font-weight:bold; }
+
+        .session-card { background: var(--bg-card); border-radius: 20px; margin-bottom: 25px; overflow: hidden; animation: slideUp 0.3s ease-out; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
 
-        .q-header { padding: 20px; display: flex; gap: 15px; align-items: flex-start; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .q-header { padding: 20px; display: flex; gap: 15px; align-items: flex-start; border-bottom: 1px solid rgba(128,128,128,0.1); }
         .q-num { background: var(--primary); color: white; padding: 5px 10px; border-radius: 8px; font-weight: 800; font-size: 0.9rem; height: fit-content; }
         .q-text { font-size: 1.05rem; line-height: 1.5; font-weight: 500; }
 
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px; }
-        .opt-btn { background: #334155; border: 2px solid transparent; padding: 15px; border-radius: 12px; text-align: left; cursor: pointer; color: var(--text-light); font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .opt-btn { background: var(--bg-element); border: 2px solid transparent; padding: 15px; border-radius: 12px; text-align: left; cursor: pointer; color: var(--text-main); font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
         .opt-btn.selected { background: #1e40af !important; border-color: var(--selected) !important; color: white !important; }
         .opt-btn.correct { background: #064e3b !important; border-color: #34d399 !important; color: #d1fae5 !important; }
         .opt-btn.wrong { background: #7f1d1d !important; border-color: #f87171 !important; color: #fee2e2 !important; }
         .opt-btn:disabled { opacity: 0.8; pointer-events: none; }
 
-        .audio-icon-btn { background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #cbd5e1; margin-left: 10px; }
+        .audio-icon-btn { background: rgba(128,128,128,0.2); border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-sub); margin-left: 10px; }
 
         /* MODALS & REVIEW */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 2000; display: none; align-items: center; justify-content: center; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-overlay); backdrop-filter: blur(8px); z-index: 2000; display: none; align-items: center; justify-content: center; }
         .modal-overlay.active { display: flex !important; }
-        .modal-card { background: var(--card-bg); width: 95%; max-width: 500px; border-radius: 24px; padding: 25px; text-align: center; color: white; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .modal-card { background: var(--bg-card); width: 95%; max-width: 500px; border-radius: 24px; padding: 25px; text-align: center; color: var(--text-main); max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
         
-        .review-item { background: #0f172a; border-radius: 12px; padding: 15px; margin-bottom: 15px; text-align: left; border: 1px solid rgba(255,255,255,0.05); }
-        .review-q { font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; color: #e2e8f0; }
+        .review-item { background: var(--bg-body); border-radius: 12px; padding: 15px; margin-bottom: 15px; text-align: left; border: 1px solid rgba(128,128,128,0.1); }
+        .review-q { font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-main); }
         .review-ans-row { display: flex; gap: 10px; font-size: 0.85rem; margin-bottom: 10px; flex-wrap: wrap; }
         .ans-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; }
         .ans-correct { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #34d399; }
         .ans-wrong { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #f87171; }
         
         .review-tools { display: flex; gap: 8px; margin-top: 8px; }
-        .tool-btn { background: #334155; border: 1px solid #475569; color: #cbd5e1; padding: 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; flex: 1; font-weight: 600; transition: 0.2s; }
+        .tool-btn { background: var(--bg-element); border: 1px solid #475569; color: var(--text-sub); padding: 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; flex: 1; font-weight: 600; transition: 0.2s; }
         .tool-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
-        .ai-box-review { margin-top: 10px; background: #1e293b; padding: 10px; border-radius: 8px; font-size: 0.85rem; display: none; color: #e2e8f0; border-left: 3px solid var(--primary); text-align: left; line-height: 1.5; }
+        .ai-box-review { margin-top: 10px; background: var(--bg-element); padding: 10px; border-radius: 8px; font-size: 0.85rem; display: none; color: var(--text-main); border-left: 3px solid var(--primary); text-align: left; line-height: 1.5; }
 
-        input.text-input { width: 100%; padding: 15px; border: 2px solid #475569; border-radius: 12px; font-size: 1rem; margin: 20px 0; box-sizing: border-box; text-align: center; background: #0f172a; color: white; }
+        input.text-input { width: 100%; padding: 15px; border: 2px solid var(--bg-element); border-radius: 12px; font-size: 1rem; margin: 20px 0; box-sizing: border-box; text-align: center; background: var(--bg-body); color: var(--text-main); }
 
-        .fab-finish { position: fixed; bottom: 60px; right: 30px; background: white; color: var(--bg-dark); padding: 16px 32px; border-radius: 50px; border: none; font-weight: 800; font-size: 1.1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3); cursor: pointer; z-index: 1000; display: none; }
+        .fab-finish { position: fixed; bottom: 60px; right: 30px; background: var(--text-main); color: var(--bg-body); padding: 16px 32px; border-radius: 50px; border: none; font-weight: 800; font-size: 1.1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3); cursor: pointer; z-index: 1000; display: none; }
+
+        /* LEADERBOARD STYLES */
+        .lb-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg-body); padding: 12px; border-radius: 10px; margin-bottom: 8px; border: 1px solid rgba(128,128,128,0.1); }
+        .lb-rank { font-weight: 800; font-size: 1.2rem; width: 30px; }
+        .lb-name { flex-grow: 1; text-align: left; font-weight: 600; padding-left: 10px; }
+        .lb-score { font-weight: 700; color: var(--warning); }
+        .refresh-btn { background: var(--bg-element); border: none; color: var(--text-main); border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+        .refresh-btn:active { transform: rotate(180deg); }
 
         @media (max-width: 600px) {
             .options-grid { grid-template-columns: 1fr; }
@@ -143,10 +194,16 @@
 <body>
 
 <div class="user-header-bar">
-    <div style="font-weight:700;">👤 <span id="header-name">Guest</span></div>
-    <div style="font-size:0.8rem; display:flex; align-items:center;">
-        <span class="live-indicator" id="live-dot"></span>
-        <span id="conn-text">Connecting...</span>
+    <div class="header-left">
+        <div style="font-weight:700;">👤 <span id="header-name">Guest</span></div>
+        <div style="font-size:0.8rem; display:flex; align-items:center;">
+            <span class="live-indicator" id="live-dot"></span>
+            <span id="conn-text">Connecting...</span>
+        </div>
+    </div>
+    <div class="header-right">
+        <div id="timer-display" class="timer-badge">⏳ 250s</div>
+        <button class="theme-toggle-btn" onclick="window.app.toggleTheme()">🌓</button>
     </div>
 </div>
 
@@ -158,7 +215,7 @@
         <div class="xp-container">
             <div class="xp-info"><span>LVL <span id="lvl-num">1</span></span><span id="xp-text">0 / 500 XP</span></div>
             <div class="progress-track"><div class="progress-fill" id="xp-bar"></div></div>
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:5px;">Seen: <span id="seen-count">0</span> / 486 Unique Words</div>
+            <div style="font-size:0.75rem; color:var(--text-sub); margin-top:5px;">Seen: <span id="seen-count">0</span> / 486 Unique Words</div>
         </div>
 
         <div class="stats-grid">
@@ -193,6 +250,8 @@
     </div>
 
     <div id="feed-container" style="display:none;">
+        <div id="ingame-players-container" class="ingame-players-bar" style="display:none;"></div>
+
         <div class="score-rules">
             <span>✅ +1.0 Correct</span>
             <span style="color:#f87171">⛔ -0.5 Wrong</span>
@@ -214,6 +273,14 @@
 
 <div class="modal-overlay" id="score-modal">
     <div class="modal-card">
+        <div id="online-lb-container" style="display:none; margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid rgba(128,128,128,0.2);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3 style="margin:0; color:#f59e0b;">🏆 Leaderboard</h3>
+                <button class="refresh-btn" onclick="window.app.refreshLeaderboard()">🔄</button>
+            </div>
+            <div id="final-lb-list" style="text-align:left;"></div>
+        </div>
+
         <h2 style="margin-top:0;">Session Report</h2>
         
         <div class="score-circle" id="final-circle" style="margin:10px auto; width:80px; height:80px; border-radius:50%; border:4px solid var(--primary); display:flex; align-items:center; justify-content:center; font-size:1.2rem; font-weight:bold; color:var(--primary);">
@@ -228,11 +295,6 @@
         <h3 id="final-score-txt" style="margin:5px 0;">Score: 0</h3>
 
         <div id="review-container" style="margin-top:15px; text-align:left; max-height:400px; overflow-y:auto; padding-right:5px;"></div>
-
-        <div id="online-lb-container" style="display:none; margin-top:20px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
-            <h4 style="color:#f59e0b; margin-bottom:10px;">Leaderboard</h4>
-            <div id="final-lb-list" style="text-align:left;"></div>
-        </div>
         
         <button class="ctrl-btn btn-solo" style="width:100%; margin-top:20px;" onclick="location.reload()">Back to Menu</button>
     </div>
@@ -766,19 +828,22 @@
 
     window.app = {
         words: [],
-        data: { score: 0, xp: 0, history: {}, seen: [], apiKey: "AIzaSyDJvoeMlz4NWpV2FAR0TOSRPchkVQvQejA", name: "Guest" },
+        data: { score: 0, xp: 0, history: {}, seen: [], apiKey: "AIzaSyDJvoeMlz4NWpV2FAR0TOSRPchkVQvQejA", name: "Guest", theme: 'dark' },
         currentBatch: [],
         gameId: null,
         user: null,
         isHost: false,
         unsubscribe: null,
         heartbeatInterval: null,
+        timerInterval: null,
         mode: 'solo',
+        timeLeft: 250,
 
         init() {
             try {
                 this.parseWords();
                 this.loadData();
+                this.applyTheme();
                 headerName.innerText = this.data.name;
                 
                 if(auth) {
@@ -812,6 +877,16 @@
         saveData() { localStorage.setItem('vm_final_stable_data', JSON.stringify(this.data)); this.updateDashboard(); },
         resetData() { if(confirm("Reset Data?")) { localStorage.removeItem('vm_final_stable_data'); location.reload(); } },
         logout() { if(auth) auth.signOut(); localStorage.removeItem('vm_final_stable_data'); location.reload(); },
+
+        toggleTheme() {
+            this.data.theme = this.data.theme === 'dark' ? 'light' : 'dark';
+            this.applyTheme();
+            this.saveData();
+        },
+        applyTheme() {
+            if(this.data.theme === 'light') document.body.classList.add('light-theme');
+            else document.body.classList.remove('light-theme');
+        },
 
         checkNameAndJoin() {
             if (this.data.name === "Guest") document.getElementById('name-modal').classList.add('active');
@@ -857,9 +932,22 @@
                     ref.update({ [`players.${this.user.uid}`]: { name: this.data.name, score: 0, completed: false, lastSeen: Date.now() } });
                 }
                 
-                document.getElementById('lobby-players').innerHTML = Object.values(d.players).map(p => {
+                // RENDER PLAYERS LIST (For Lobby)
+                const playerArray = Object.values(d.players);
+                document.getElementById('lobby-players').innerHTML = playerArray.map(p => {
                     const isOnline = (Date.now() - (p.lastSeen || 0)) < 15000;
                     return `<div class="player-chip"><span>${isOnline?'🟢':'⚪'} ${p.name}</span><span>${p.completed?'DONE':(isOnline?'On':'Away')}</span></div>`;
+                }).join('');
+
+                // RENDER TOP BAR PLAYERS (For In-Game)
+                const inGameBar = document.getElementById('ingame-players-container');
+                inGameBar.innerHTML = Object.entries(d.players).map(([uid, p]) => {
+                     const isOnline = (Date.now() - (p.lastSeen || 0)) < 15000;
+                     const isMe = this.user && uid === this.user.uid;
+                     return `<div class="mini-player-pill ${isMe ? 'is-me' : ''}">
+                         <span style="color:${isOnline?'#10b981':'#94a3b8'}">●</span>
+                         <span>${p.name}</span>
+                     </div>`;
                 }).join('');
 
                 if (this.isHost) document.getElementById('host-controls').style.display = 'block';
@@ -882,6 +970,20 @@
 
         async startOnlineRound() { if(db) await db.collection('vocab_games').doc(this.gameId.toString()).update({ status: 'started' }); },
 
+        // --- NEW SEMANTIC OPTION LOGIC ---
+        detectCategory(meaning) {
+            const m = meaning.toLowerCase();
+            if (m.includes('killing') || m.includes('murder') || m.includes('slaughter')) return 'killing';
+            if (m.includes('fear') || m.includes('phobia')) return 'phobia';
+            if (m.includes('government') || m.includes('rule') || m.includes('political')) return 'gov';
+            if (m.includes('study') || m.includes('science')) return 'study';
+            if (m.includes('person') || m.includes('one who') || m.includes('someone')) return 'person';
+            if (m.includes('place') || m.includes('where') || m.includes('building')) return 'place';
+            if (m.includes('group') || m.includes('collection')) return 'group';
+            if (m.includes('mania') || m.includes('desire') || m.includes('craving')) return 'mania';
+            return null;
+        },
+
         getBatch(count, seed) {
             const rng = mulberry32(seed ? Math.floor(seed*10000) : Date.now());
             let available = this.words.filter(w => !this.data.seen.includes(w.word));
@@ -903,18 +1005,70 @@
             document.getElementById('dashboard').style.display = 'none';
             document.getElementById('feed-container').style.display = 'block';
             
+            // Show Player Bar only in Multi
+            if(mode === 'multi') {
+                document.getElementById('ingame-players-container').style.display = 'flex';
+                document.getElementById('timer-display').style.display = 'block';
+                this.startTimer(250);
+            } else {
+                document.getElementById('timer-display').style.display = 'none';
+            }
+            
             const rng = mulberry32(seed ? Math.floor(seed*10000) : Date.now());
             let pool;
             if (mode === 'solo') pool = this.getBatch(20, null); 
             else pool = this.words.map(v => ({ v, s: rng() })).sort((a,b)=>a.s-b.s).map(x=>x.v).slice(0, 20);
 
             this.currentBatch = pool.map((t, i) => {
-                const distract = this.words.filter(w=>w.word!==t.word).map(w=>({w,s:rng()})).sort((a,b)=>b.s-a.s).slice(0,3).map(x=>x.w.word);
-                const opts = [...distract, t.word].map(w=>({w,s:rng()})).sort((a,b)=>b.s-a.s).map(x=>x.w);
+                const correctWord = t.word;
+                const cat = this.detectCategory(t.meaning);
+                let distractors = [];
+
+                // 1. Try Category Match (Smartest)
+                if (cat) {
+                    let candidates = this.words.filter(w => w.word !== correctWord && this.detectCategory(w.meaning) === cat);
+                    candidates = candidates.map(w => ({w, s:rng()})).sort((a,b)=>a.s-b.s).map(x=>x.w);
+                    distractors = candidates.slice(0, 3);
+                }
+
+                // 2. Fallback: First Letter Match (If category failed or not enough options)
+                if (distractors.length < 3) {
+                    const firstChar = correctWord.charAt(0);
+                    let letterCandidates = this.words.filter(w => w.word !== correctWord && w.word.charAt(0) === firstChar && !distractors.includes(w));
+                    letterCandidates = letterCandidates.map(w => ({w, s:rng()})).sort((a,b)=>a.s-b.s).map(x=>x.w);
+                    distractors = [...distractors, ...letterCandidates].slice(0, 3);
+                }
+
+                // 3. Fallback: Random (Last Resort)
+                if (distractors.length < 3) {
+                    const needed = 3 - distractors.length;
+                    const others = this.words.filter(w => w.word !== correctWord && !distractors.includes(w));
+                    const randomFill = others.map(w => ({w, s:rng()})).sort((a,b)=>a.s-b.s).map(x=>x.w).slice(0, needed);
+                    distractors = [...distractors, ...randomFill];
+                }
+
+                const distractWords = distractors.map(d => d.word);
+                const opts = [...distractWords, t.word].map(w=>({w,s:rng()})).sort((a,b)=>b.s-a.s).map(x=>x.w);
+                
                 return { id: Date.now()+i, q: t.meaning, correct: t.word, opts: opts, sel: null };
             });
             this.renderFeed();
             document.getElementById('finish-btn').style.display = 'block';
+        },
+
+        startTimer(seconds) {
+            this.timeLeft = seconds;
+            if(this.timerInterval) clearInterval(this.timerInterval);
+            const display = document.getElementById('timer-display');
+            
+            this.timerInterval = setInterval(() => {
+                this.timeLeft--;
+                display.innerText = `⏳ ${this.timeLeft}s`;
+                if(this.timeLeft <= 0) {
+                    clearInterval(this.timerInterval);
+                    this.finishGame(); // Auto Submit
+                }
+            }, 1000);
         },
         
         startSolo() { this.startRound(null, 'solo'); },
@@ -971,9 +1125,10 @@
         },
 
         async finishGame() {
-            // SAFE MODE: Local Calc First
             try {
-                document.getElementById('finish-btn').style.display = 'none'; // Instant hide
+                if(this.timerInterval) clearInterval(this.timerInterval); // Stop Timer
+                document.getElementById('finish-btn').style.display = 'none';
+                document.getElementById('timer-display').style.display = 'none';
                 
                 let sessionScore = 0; 
                 let correctCount = 0;
@@ -1016,7 +1171,7 @@
                 // UPDATE UI IMMEDIATELY
                 const pct = Math.round((correctCount/this.currentBatch.length)*100) || 0;
                 document.getElementById('final-pct').innerText = pct + "%";
-                document.getElementById('final-circle').style.background = `conic-gradient(var(--success) ${pct}%, #334155 0)`;
+                document.getElementById('final-circle').style.background = `conic-gradient(var(--success) ${pct}%, var(--bg-element) 0)`;
                 document.getElementById('final-score-txt').innerText = `Score: ${sessionScore}`;
                 document.getElementById('report-correct').innerText = correctCount;
                 document.getElementById('report-wrong').innerText = this.currentBatch.filter(q=>q.sel).length - correctCount;
@@ -1042,14 +1197,42 @@
                         const ref = db.collection('vocab_games').doc(this.gameId.toString());
                         await ref.update({ [`players.${this.user.uid}.score`]: sessionScore, [`players.${this.user.uid}.completed`]: true });
                         document.getElementById('online-lb-container').style.display = 'block';
-                        const snap = await ref.get();
-                        const players = Object.values(snap.data().players).sort((a,b)=>b.score-a.score);
-                        document.getElementById('final-lb-list').innerHTML = players.map((p,i)=>`<div>#${i+1} ${p.name}: ${p.score}</div>`).join('');
+                        this.refreshLeaderboard(); // Load initial LB
                     }
                 }
             } catch(e) {
                 alert("Error calculating score: " + e.message);
             }
+        },
+
+        async refreshLeaderboard() {
+            if(!db || !this.gameId) return;
+            const ref = db.collection('vocab_games').doc(this.gameId.toString());
+            const snap = await ref.get();
+            const players = Object.values(snap.data().players).sort((a,b) => b.score - a.score);
+            
+            // FAIR RANKING LOGIC (Dense Ranking)
+            let currentRank = 1;
+            
+            document.getElementById('final-lb-list').innerHTML = players.map((p, i) => {
+                // If not first player, and score is different from previous, increment rank
+                if (i > 0 && p.score < players[i-1].score) {
+                    currentRank++;
+                }
+                // If score is same as previous, currentRank stays same (Tie)
+
+                let badge = '🎗️';
+                if(currentRank === 1) badge = '🥇';
+                if(currentRank === 2) badge = '🥈';
+                if(currentRank === 3) badge = '🥉';
+                
+                return `
+                <div class="lb-row">
+                    <div class="lb-rank">${badge}</div>
+                    <div class="lb-name">${p.name}</div>
+                    <div class="lb-score">${p.score}</div>
+                </div>`;
+            }).join('');
         },
 
         async askAI(type, word, targetId) {
